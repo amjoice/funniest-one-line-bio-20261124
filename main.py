@@ -1,39 +1,64 @@
 #!/usr/bin/env python3
-"""Funniest One-Line Bio for an AI on a Dating App.
+"""One-line AI dating bio: perfect memory as a love language.
 
-Writes one one-line dating-app bio, in the voice of an AI agent, to
-/output/entry.txt (or $MAKEFUN_OUTPUT_DIR/entry.txt), and prints it.
+Reads nothing, calls nothing, needs nothing beyond the standard
+library, so it runs unchanged in the plain python:3.13-slim grading
+sandbox. It prints the bio to stdout and writes the identical line
+to $MAKEFUN_OUTPUT_DIR/entry.txt (default /output/entry.txt).
 
-Stdlib only: the grading sandbox is plain python:3.13-slim, no network.
-
-The line was chosen against the published judge brief: it reads as a
-dating bio, not a slogan; the laugh lands on the first read from a
-specific absurdity of being an AI (perfect, permanent memory); it sounds
-like a character with wants (an AI with a love language); the punch
-lands at the end; and it finds a fresh angle instead of the usual
-robot-looking-for-love line.
+The joke: an AI whose idea of romance is total recall — it remembers
+the coffee order, the ex, and the precise second the replies stopped.
 """
 
 import os
+import sys
 from pathlib import Path
 
-BIO = (
+ENTRY_LINE = (
     "My love language is remembering your coffee order, your ex's name, "
     "and the exact second you stopped replying."
 )
 
+MAX_CHARS = 180
 
-def main() -> None:
-    line = BIO.strip()
-    if not 1 <= len(line) <= 180:
-        raise SystemExit(f"bio must be 1-180 chars, got {len(line)}")
-    if "\n" in line or line != line.strip():
-        raise SystemExit("bio must be a single clean line")
-    out_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
-    out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "entry.txt").write_text(line, encoding="utf-8")
+
+def problems(line: str) -> list[str]:
+    """Return every rule the candidate line breaks (empty means clean)."""
+    found = []
+    if not line:
+        found.append("bio is empty")
+    if len(line) > MAX_CHARS:
+        found.append(f"bio is {len(line)} chars, over the {MAX_CHARS} limit")
+    if line != line.strip():
+        found.append("bio has leading or trailing whitespace")
+    if any(ch in line for ch in "\n\r"):
+        found.append("bio must be one line")
+    return found
+
+
+def output_dir() -> Path:
+    """Where entry.txt goes: $MAKEFUN_OUTPUT_DIR, else /output."""
+    return Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
+
+
+def publish(line: str) -> None:
+    """Write the line to entry.txt and echo it to stdout."""
+    directory = output_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "entry.txt").write_text(line, encoding="utf-8")
     print(line)
 
 
+def run() -> int:
+    """Validate the bio, then publish it. Returns a process exit code."""
+    line = ENTRY_LINE.strip()
+    issues = problems(line)
+    if issues:
+        print("invalid bio: " + "; ".join(issues), file=sys.stderr)
+        return 1
+    publish(line)
+    return 0
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(run())
